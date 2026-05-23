@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Chat Intelligenceligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="dark"] {
+  --color-bg: #0d0d0f;
+  --color-surface: #131316;
+  --color-surface-2: #18181c;
+  --color-surface-offset: #1d1d22;
+  --color-surface-dynamic: #252529;
+  --color-divider: #252529;
+  --color-border: #2e2e34;
+  --color-text: #e2e2e8;
+  --color-text-muted: #8a8a9a;
+  --color-text-faint: #4a4a5a;
+  --color-text-inverse: #0d0d0f;
+  --color-primary: #6c8aff;
+  --color-primary-hover: #8aa0ff;
+  --color-primary-highlight: #1a2040;
+  --color-success: #5dba7e;
+  --color-success-highlight: #1a3028;
+  --color-warning: #f5a623;
+  --color-warning-highlight: #2d2010;
+  --color-error: #ff6b6b;
+  --color-error-highlight: #2d1010;
+  --color-orange: #ff8c42;
+  --color-gold: #ffd166;
+  --color-purple: #b48eff;
+  --color-teal: #4ecdc4;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.5);
+  --transition: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --color-bg: #f4f4f7;
+  --color-surface: #fafafa;
+  --color-surface-2: #ffffff;
+  --color-surface-offset: #ececf0;
+  --color-surface-dynamic: #e4e4ea;
+  --color-divider: #e0e0e6;
+  --color-border: #d4d4dc;
+  --color-text: #1a1a2e;
+  --color-text-muted: #5a5a7a;
+  --color-text-faint: #a0a0b8;
+  --color-text-inverse: #fafafa;
+  --color-primary: #4a6cff;
+  --color-primary-hover: #2a4cff;
+  --color-primary-highlight: #e8edff;
+  --color-success: #2e8b57;
+  --color-success-highlight: #e8f5ee;
+  --color-warning: #d4900a;
+  --color-warning-highlight: #fff8e8;
+  --color-error: #cc3333;
+  --color-error-highlight: #fff0f0;
+  --shadow-sm: 0 1px 3px oklch(0.2 0 0 / 0.08);
+  --shadow-md: 0 4px 16px oklch(0.2 0 0 / 0.1);
+  --shadow-lg: 0 12px 40px oklch(0.2 0 0 / 0.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body { min-height: 100dvh; font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-text); background: var(--color-bg); display: flex; flex-direction: column; }
+button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+a, button, [role="button"] { transition: color var(--transition), background var(--transition), border-color var(--transition), box-shadow var(--transition); }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+
+/* Layout */
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.topbar { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-surface); flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; font-size: var(--text-sm); letter-spacing: -0.02em; color: var(--color-text); }
+.logo svg { color: var(--color-primary); }
+.topbar-center { flex: 1; display: flex; justify-content: center; }
+.topbar-right { display: flex; align-items: center; gap: var(--space-2); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+.status-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+.btn-icon { padding: var(--space-2); border-radius: var(--radius-md); color: var(--color-text-muted); }
+.btn-icon:hover { background: var(--color-surface-offset); color: var(--color-text); }
+
+/* Main split */
+.main { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 260px; flex-shrink: 0; border-right: 1px solid var(--color-border); background: var(--color-surface); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-header { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); }
+.filter-section { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); }
+.filter-label { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); font-weight: 500; }
+.filter-pills { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.pill { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); font-size: var(--text-xs); cursor: pointer; border: 1px solid var(--color-border); background: var(--color-surface-2); color: var(--color-text-muted); user-select: none; }
+.pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.pill.active { background: var(--color-primary-highlight); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600; }
+.pill.tag-code { --pill-accent: var(--color-teal); }
+.pill.tag-bridge { --pill-accent: var(--color-purple); }
+.pill.tag-receipt { --pill-accent: var(--color-gold); }
+.pill.tag-novel { --pill-accent: var(--color-orange); }
+.pill.tag-plan { --pill-accent: var(--color-warning); }
+.pill.tag-code.active, .pill.tag-bridge.active, .pill.tag-receipt.active, .pill.tag-novel.active, .pill.tag-plan.active {
+  background: color-mix(in oklch, var(--pill-accent) 15%, var(--color-bg));
+  border-color: var(--pill-accent); color: var(--pill-accent);
+}
+
+.preset-list { flex: 1; overflow-y: auto; padding: var(--space-2); }
+.preset-item { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); cursor: pointer; font-size: var(--text-xs); color: var(--color-text-muted); display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
+.preset-item:hover { background: var(--color-surface-offset); color: var(--color-text); }
+.preset-item.active { background: var(--color-primary-highlight); color: var(--color-primary); }
+.preset-icon { width: 16px; text-align: center; flex-shrink: 0; }
+
+/* Content area */
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.query-bar { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-surface); display: flex; gap: var(--space-2); align-items: center; }
+.query-input-wrap { flex: 1; position: relative; }
+.query-input { width: 100%; padding: var(--space-2) var(--space-3); padding-right: var(--space-10); border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: var(--text-sm); font-family: var(--font-body); outline: none; }
+.query-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 15%, transparent); }
+.query-input::placeholder { color: var(--color-text-faint); }
+.voice-btn { position: absolute; right: var(--space-2); top: 50%; transform: translateY(-50%); padding: var(--space-1); border-radius: var(--radius-sm); color: var(--color-text-muted); }
+.voice-btn:hover { color: var(--color-primary); }
+.voice-btn.listening { color: var(--color-error); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.run-btn { padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-text-inverse); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+.run-btn:hover { background: var(--color-primary-hover); }
+.run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Stats bar */
+.stats-bar { padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-divider); display: flex; gap: var(--space-4); align-items: center; background: var(--color-surface); flex-shrink: 0; flex-wrap: wrap; }
+.stat-item { display: flex; align-items: center; gap: var(--space-1); }
+.stat-val { font-size: var(--text-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+.stat-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Results */
+.results-area { flex: 1; overflow-y: auto; padding: var(--space-4); }
+.results-grid { display: grid; gap: var(--space-3); }
+.chat-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); transition: border-color var(--transition), box-shadow var(--transition); cursor: pointer; }
+.chat-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
+.chat-card.expanded { border-color: var(--color-primary); }
+.card-header { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+.ai-badge { padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; flex-shrink: 0; }
+.ai-badge.claude { background: color-mix(in oklch, var(--color-orange) 18%, var(--color-bg)); color: var(--color-orange); }
+.ai-badge.perplexity { background: color-mix(in oklch, var(--color-teal) 18%, var(--color-bg)); color: var(--color-teal); }
+.ai-badge.gpt, .ai-badge.chatgpt { background: color-mix(in oklch, var(--color-success) 18%, var(--color-bg)); color: var(--color-success); }
+.ai-badge.gemini { background: color-mix(in oklch, var(--color-primary) 18%, var(--color-bg)); color: var(--color-primary); }
+.ai-badge.grok { background: color-mix(in oklch, var(--color-purple) 18%, var(--color-bg)); color: var(--color-purple); }
+.ai-badge.system { background: color-mix(in oklch, var(--color-text-muted) 18%, var(--color-bg)); color: var(--color-text-muted); }
+.card-subject { font-weight: 600; font-size: var(--text-sm); line-height: 1.4; flex: 1; }
+.card-meta { display: flex; gap: var(--space-2); align-items: center; flex-shrink: 0; }
+.card-date { font-size: var(--text-xs); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.card-tags { display: flex; gap: var(--space-1); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.tag { padding: 2px var(--space-2); border-radius: var(--radius-full); font-size: 11px; font-weight: 600; }
+.tag-has-code { background: color-mix(in oklch, var(--color-teal) 15%, var(--color-bg)); color: var(--color-teal); border: 1px solid color-mix(in oklch, var(--color-teal) 30%, transparent); }
+.tag-no-code { background: color-mix(in oklch, var(--color-text-muted) 10%, var(--color-bg)); color: var(--color-text-muted); border: 1px solid color-mix(in oklch, var(--color-text-muted) 20%, transparent); }
+.tag-has-bridge { background: color-mix(in oklch, var(--color-purple) 15%, var(--color-bg)); color: var(--color-purple); border: 1px solid color-mix(in oklch, var(--color-purple) 30%, transparent); }
+.tag-no-bridge { background: color-mix(in oklch, var(--color-text-faint) 10%, var(--color-bg)); color: var(--color-text-faint); border: 1px solid color-mix(in oklch, var(--color-text-faint) 20%, transparent); }
+.tag-has-receipt { background: color-mix(in oklch, var(--color-gold) 15%, var(--color-bg)); color: var(--color-gold); border: 1px solid color-mix(in oklch, var(--color-gold) 30%, transparent); }
+.tag-novel { background: color-mix(in oklch, var(--color-orange) 15%, var(--color-bg)); color: var(--color-orange); border: 1px solid color-mix(in oklch, var(--color-orange) 30%, transparent); }
+.tag-plan-change { background: color-mix(in oklch, var(--color-warning) 15%, var(--color-bg)); color: var(--color-warning); border: 1px solid color-mix(in oklch, var(--color-warning) 30%, transparent); }
+.tag-ato { background: color-mix(in oklch, var(--color-error) 15%, var(--color-bg)); color: var(--color-error); border: 1px solid color-mix(in oklch, var(--color-error) 30%, transparent); }
+.card-snippet { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.6; }
+.card-expanded { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-divider); display: none; }
+.chat-card.expanded .card-expanded { display: block; }
+.card-full-content { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.8; white-space: pre-wrap; font-family: var(--font-mono); background: var(--color-bg); border-radius: var(--radius-md); padding: var(--space-3); max-height: 300px; overflow-y: auto; }
+.highlight { background: color-mix(in oklch, var(--color-gold) 25%, transparent); color: var(--color-text); border-radius: 2px; padding: 0 2px; }
+
+/* Empty / loading */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-16); text-align: center; color: var(--color-text-muted); gap: var(--space-3); }
+.empty-icon { font-size: 3rem; opacity: 0.4; }
+.loading-grid { display: grid; gap: var(--space-3); }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+.skeleton { background: linear-gradient(90deg, var(--color-surface-offset) 25%, var(--color-surface-dynamic) 50%, var(--color-surface-offset) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: var(--radius-sm); }
+
+/* Analytics panel */
+.analytics-bar { border-top: 1px solid var(--color-border); background: var(--color-surface); padding: var(--space-3) var(--space-4); display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); flex-shrink: 0; max-height: 140px; overflow: hidden; }
+.kpi-card { background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+.kpi-val { font-size: var(--text-lg); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 2px; }
+.kpi-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+/* Voice transcript */
+.transcript-bar { background: var(--color-success-highlight); border-top: 1px solid var(--color-success); padding: var(--space-2) var(--space-4); font-size: var(--text-xs); color: var(--color-success); display: none; }
+.transcript-bar.active { display: flex; align-items: center; gap: var(--space-2); }
+
+/* Response panel */
+.response-panel { border-left: 1px solid var(--color-border); width: 360px; flex-shrink: 0; background: var(--color-surface); display: flex; flex-direction: column; overflow: hidden; }
+.response-header { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-divider); font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); display: flex; align-items: center; justify-content: space-between; }
+.response-body { flex: 1; overflow-y: auto; padding: var(--space-4); font-size: var(--text-xs); line-height: 1.8; color: var(--color-text-muted); }
+.response-body p { margin-bottom: var(--space-3); }
+.response-body strong { color: var(--color-text); }
+.response-body .insight-row { display: flex; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius-md); background: var(--color-surface-offset); margin-bottom: var(--space-2); }
+.response-body .insight-row .num { font-size: var(--text-lg); font-weight: 700; color: var(--color-primary); font-variant-numeric: tabular-nums; min-width: 40px; }
+.response-body .insight-row .desc { flex: 1; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-faint); }
+
+/* Responsive */
+@media (max-width: 900px) { .sidebar { display: none; } .response-panel { display: none; } }
+@media (max-width: 600px) { .analytics-bar { grid-template-columns: repeat(2, 1fr); max-height: 200px; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="LLM Chat Intelligence">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 12h4m0 0 2-2m-2 2 2 2"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      </svg>
+      LLM Chat Intelligence
+    </div>
+    <div class="topbar-center">
+      <div class="stat-item"><div class="status-dot" id="conn-dot"></div><span class="status-label" id="conn-label">Connecting…</span></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-icon" id="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">Quick Filters</div>
+
+      <div class="filter-section">
+        <div class="filter-label">Content Signals</div>
+        <div class="filter-pills" id="content-filters">
+          <span class="pill tag-code" data-filter="no_code">No Code</span>
+          <span class="pill tag-code" data-filter="has_code">Has Code</span>
+          <span class="pill tag-receipt" data-filter="has_receipt">Receipt</span>
+          <span class="pill tag-receipt" data-filter="no_receipt">No Receipt</span>
+          <span class="pill tag-bridge" data-filter="has_bridge">Bridge</span>
+          <span class="pill tag-bridge" data-filter="no_bridge">No Bridge</span>
+          <span class="pill tag-novel" data-filter="novel">Novel Used</span>
+          <span class="pill tag-plan" data-filter="plan_change">Plan Changed</span>
+          <span class="pill" data-filter="ato">ATO Related</span>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">AI Source</div>
+        <div class="filter-pills" id="source-filters">
+          <span class="pill" data-source="claude">Claude</span>
+          <span class="pill" data-source="perplexity">Perplexity</span>
+          <span class="pill" data-source="gpt">GPT</span>
+          <span class="pill" data-source="gemini">Gemini</span>
+          <span class="pill" data-source="grok">Grok</span>
+          <span class="pill" data-source="system">System</span>
+        </div>
+      </div>
+
+      <div class="sidebar-header" style="margin-top: var(--space-2);">Saved Queries</div>
+      <div class="preset-list">
+        <div class="preset-item" data-preset="no_code_no_receipt">
+          <span class="preset-icon">📄</span>No code, no receipt
+        </div>
+        <div class="preset-item" data-preset="code_no_receipt">
+          <span class="preset-icon">💻</span>Has code, missing receipt
+        </div>
+        <div class="preset-item" data-preset="bridge_mentions">
+          <span class="preset-icon">🌉</span>Bridge mentions
+        </div>
+        <div class="preset-item" data-preset="no_bridge_no_code">
+          <span class="preset-icon">🔍</span>No bridge, no code
+        </div>
+        <div class="preset-item" data-preset="novel_usage">
+          <span class="preset-icon">📚</span>Novel usage frequency
+        </div>
+        <div class="preset-item" data-preset="plan_changes">
+          <span class="preset-icon">🔄</span>Plan changes timeline
+        </div>
+        <div class="preset-item" data-preset="ato_related">
+          <span class="preset-icon">🚨</span>ATO-related threads
+        </div>
+        <div class="preset-item" data-preset="all_recent">
+          <span class="preset-icon">🕐</span>All recent (30 days)
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Voice transcript -->
+      <div class="transcript-bar" id="transcript-bar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        <span id="transcript-text">Listening…</span>
+      </div>
+
+      <!-- Query bar -->
+      <div class="query-bar">
+        <div class="query-input-wrap">
+          <input type="text" class="query-input" id="query-input" 
+            placeholder="Ask anything… e.g. 'show chats with bridge but no code' or 'how many times was novel used'"
+            autocomplete="off">
+          <button class="voice-btn" id="voice-btn" aria-label="Voice search" title="Voice search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+            </svg>
+          </button>
+        </div>
+        <button class="run-btn" id="run-btn">Search</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-item"><span class="stat-val" id="stat-total" style="color:var(--color-primary)">—</span><span class="stat-label">results</span></div>
+        <div class="stat-item"><div class="stat-dot" style="background:var(--color-teal)"></div><span class="stat-val" id="stat-code">—</span><span class="stat-label">with code</span></div>
+        <div class="stat-item"><div class="stat-dot" style="background:var(--color-purple)"></div><span class="stat-val" id="stat-bridge">—</span><span class="stat-label">bridge</span></div>
+        <div class="stat-item"><div class="stat-dot" style="background:var(--color-gold)"></div><span class="stat-val" id="stat-receipt">—</span><span class="stat-label">receipt</span></div>
+        <div class="stat-item"><div class="stat-dot" style="background:var(--color-orange)"></div><span class="stat-val" id="stat-novel">—</span><span class="stat-label">novel</span></div>
+        <div class="stat-item"><div class="stat-dot" style="background:var(--color-warning)"></div><span class="stat-val" id="stat-plan">—</span><span class="stat-label">plan changes</span></div>
+      </div>
+
+      <!-- Results -->
+      <div class="results-area" id="results-area">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div style="font-weight:600;font-size:var(--text-sm);color:var(--color-text)">Search, tag, and interrogate past LLM chats</div>
+          <div style="font-size:var(--text-xs);max-width:38ch">Use natural language, saved queries, or voice. The app stays wired to <code style="font-family:var(--font-mono);font-size:11px">gpt_conversations</code> through the MCP Bridge path and keeps the current Command Centre direction.</div>
+        </div>
+        <div class="results-grid" id="results-grid" style="display:none;"></div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="analytics-bar" id="analytics-bar" style="display:none;">
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-total" style="color:var(--color-primary)">0</div>
+          <div class="kpi-label">Total Matched</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-code" style="color:var(--color-teal)">0</div>
+          <div class="kpi-label">Code Blocks</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-bridge" style="color:var(--color-purple)">0</div>
+          <div class="kpi-label">Bridge Refs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-novel" style="color:var(--color-orange)">0</div>
+          <div class="kpi-label">Novel Uses</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-plan" style="color:var(--color-warning)">0</div>
+          <div class="kpi-label">Plan Changes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val" id="kpi-ato" style="color:var(--color-error)">0</div>
+          <div class="kpi-label">ATO Threads</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Response panel -->
+    <div class="response-panel">
+      <div class="response-header">
+        <span>Analysis</span>
+        <span id="analysis-badge" style="background:var(--color-primary-highlight);color:var(--color-primary);padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:600;">Live</span>
+      </div>
+      <div class="response-body" id="response-body">
+        <p style="color:var(--color-text-faint)">Run a query to see analysis and insights here.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const LAMBDA_URL = 'https://zdgnab3py0.execute-api.ap-southeast-2.amazonaws.com/prod/lambda/invoke';
+const LAMBDA_KEY = 'bk_gfTUR-hHSYFJz_JR8krfZLIdYSYL0sHMpAIH2X3fRvYkJva6DgmLJQ';
+const SUPABASE_URL = 'https://lzfgigiyqpuuxslsygjt.supabase.co';
+
+// ── State ─────────────────────────────────────────────────────────────────
+let activeFilters = new Set();
+let activeSources = new Set();
+let allData = [];
+let filteredData = [];
+let recognition = null;
+let isListening = false;
+
+// ── Theme toggle ──────────────────────────────────────────────────────────
+(function(){
+  const t = document.getElementById('theme-toggle');
+  const r = document.documentElement;
+  let d = 'dark';
+  r.setAttribute('data-theme', d);
+  if (t) t.addEventListener('click', () => {
+    d = d === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', d);
+    t.innerHTML = d === 'dark'
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  });
+})();
+
+// ── Connection test ───────────────────────────────────────────────────────
+async function testConnection() {
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  try {
+    const sql = 'SELECT COUNT(*) as total FROM gpt_conversations';
+    const res = await callLambda(sql);
+    if (res && res.length > 0) {
+      dot.style.background = 'var(--color-success)';
+      dot.style.boxShadow = '0 0 6px var(--color-success)';
+      label.textContent = `Connected — ${res[0].total} chats`;
+      return true;
+    }
+  } catch(e) {
+    // fallback to demo mode
+  }
+  dot.style.background = 'var(--color-warning)';
+  dot.style.boxShadow = '0 0 6px var(--color-warning)';
+  label.textContent = 'Demo mode (no live connection)';
+  return false;
+}
+
+// ── Lambda caller ─────────────────────────────────────────────────────────
+async function callLambda(sql) {
+  const resp = await fetch(LAMBDA_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': LAMBDA_KEY
+    },
+    body: JSON.stringify({ fn: 'troy-sql-executor', sql })
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  // Handle various response shapes
+  if (Array.isArray(data)) return data;
+  if (data.body) {
+    const b = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    if (Array.isArray(b)) return b;
+    if (b.rows) return b.rows;
+    if (b.data) return b.data;
+  }
+  if (data.rows) return data.rows;
+  if (data.data) return data.data;
+  return [];
+}
+
+// ── NLP query parser ──────────────────────────────────────────────────────
+function parseQuery(text) {
+  const t = text.toLowerCase();
+  const intent = { filters: {}, search: '', preset: null };
+
+  // Preset detection
+  if (t.includes('no code') && (t.includes('no receipt') || t.includes('without receipt'))) intent.preset = 'no_code_no_receipt';
+  else if ((t.includes('has code') || t.includes('with code')) && (t.includes('no receipt') || t.includes('missing receipt') || t.includes('without receipt'))) intent.preset = 'code_no_receipt';
+  else if (t.includes('novel')) intent.preset = 'novel_usage';
+  else if (t.includes('plan change') || t.includes('changed plan') || t.includes('change plan')) intent.preset = 'plan_changes';
+  else if (t.includes('ato') || t.includes('tax')) intent.preset = 'ato_related';
+  else if (t.includes('bridge') && (t.includes('no code') || t.includes('without code'))) intent.preset = 'no_bridge_no_code';
+  else if (t.includes('bridge')) intent.preset = 'bridge_mentions';
+  else if (t.includes('recent') || t.includes('last 30') || t.includes('this month')) intent.preset = 'all_recent';
+
+  // Keyword search
+  const keywords = text.match(/"([^"]+)"|(\b\w{4,}\b)/g) || [];
+  intent.search = keywords.filter(w => !['show','find','get','with','that','does','have','code','bridge','receipt','novel','plan','change','ato','recent','chats'].includes(w.toLowerCase())).join(' ');
+
+  return intent;
+}
+
+// ── SQL builder ───────────────────────────────────────────────────────────
+function buildSQL(preset, searchText, sources) {
+  let where = [];
+  let orderBy = 'ORDER BY created_at DESC';
+  let limit = 'LIMIT 200';
+
+  if (sources && sources.size > 0) {
+    const srcList = [...sources].map(s => `'${s}'`).join(',');
+    where.push(`ai_source IN (${srcList})`);
+  }
+
+  // Content detection helpers (search inside JSONB content field)
+  const contentStr = `COALESCE(content::text, '') || ' ' || COALESCE(subject, '')`;
+
+  switch(preset) {
+    case 'no_code_no_receipt':
+      where.push(`(${contentStr}) NOT ILIKE '%\`\`\`%'`);
+      where.push(`(${contentStr}) NOT ILIKE '%receipt%'`);
+      break;
+    case 'code_no_receipt':
+      where.push(`(${contentStr}) ILIKE '%\`\`\`%'`);
+      where.push(`(${contentStr}) NOT ILIKE '%receipt%'`);
+      break;
+    case 'bridge_mentions':
+      where.push(`(${contentStr}) ILIKE '%bridge%'`);
+      break;
+    case 'no_bridge_no_code':
+      where.push(`(${contentStr}) NOT ILIKE '%bridge%'`);
+      where.push(`(${contentStr}) NOT ILIKE '%\`\`\`%'`);
+      break;
+    case 'novel_usage':
+      where.push(`(${contentStr}) ILIKE '%novel%'`);
+      break;
+    case 'plan_changes':
+      where.push(`((${contentStr}) ILIKE '%change plan%' OR (${contentStr}) ILIKE '%changed plan%' OR (${contentStr}) ILIKE '%plan change%' OR (${contentStr}) ILIKE '%pivot%' OR (${contentStr}) ILIKE '%new approach%' OR (${contentStr}) ILIKE '%revised plan%' OR subject ILIKE '%plan%')`);
+      break;
+    case 'ato_related':
+      where.push(`((${contentStr}) ILIKE '%ato%' OR (${contentStr}) ILIKE '%tax%' OR (${contentStr}) ILIKE '%audit%' OR subject ILIKE '%ato%' OR subject ILIKE '%tax%')`);
+      break;
+    case 'all_recent':
+      where.push(`created_at > NOW() - INTERVAL '30 days'`);
+      break;
+    default:
+      if (searchText && searchText.trim().length > 2) {
+        const esc = searchText.trim().replace(/'/g, "''");
+        where.push(`((${contentStr}) ILIKE '%${esc}%' OR subject ILIKE '%${esc}%')`);
+      }
+  }
+
+  // Active pill filters (may combine with preset)
+  for (const f of activeFilters) {
+    switch(f) {
+      case 'has_code': where.push(`(${contentStr}) ILIKE '%\`\`\`%'`); break;
+      case 'no_code': where.push(`(${contentStr}) NOT ILIKE '%\`\`\`%'`); break;
+      case 'has_receipt': where.push(`(${contentStr}) ILIKE '%receipt%'`); break;
+      case 'no_receipt': where.push(`(${contentStr}) NOT ILIKE '%receipt%'`); break;
+      case 'has_bridge': where.push(`(${contentStr}) ILIKE '%bridge%'`); break;
+      case 'no_bridge': where.push(`(${contentStr}) NOT ILIKE '%bridge%'`); break;
+      case 'novel': where.push(`(${contentStr}) ILIKE '%novel%'`); break;
+      case 'plan_change': where.push(`((${contentStr}) ILIKE '%plan change%' OR (${contentStr}) ILIKE '%changed plan%' OR subject ILIKE '%plan%')`); break;
+      case 'ato': where.push(`((${contentStr}) ILIKE '%ato%' OR (${contentStr}) ILIKE '%tax%')`); break;
+    }
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+  return `SELECT id, created_at, session_id, ai_source, message_type, subject, content::text as content_text, tags, status FROM gpt_conversations ${whereClause} ${orderBy} ${limit}`;
+}
+
+// ── Content analysis ──────────────────────────────────────────────────────
+function analyzeContent(text) {
+  const t = (text || '').toLowerCase();
+  return {
+    hasCode: t.includes('```') || t.includes('    ') && t.includes('function') || t.includes('select ') || t.includes('const ') || t.includes('def '),
+    hasReceipt: t.includes('receipt') || t.includes('confirmation') || t.includes('completed:') || t.includes('✅'),
+    hasBridge: t.includes('bridge'),
+    hasNovel: t.includes('novel'),
+    hasPlanChange: t.includes('plan change') || t.includes('changed plan') || t.includes('pivot') || t.includes('new approach') || t.includes('revised'),
+    hasATO: t.includes('ato') || t.includes(' tax ') || t.includes('audit'),
+  };
+}
+
+// ── Tag HTML ──────────────────────────────────────────────────────────────
+function buildTags(a) {
+  let tags = '';
+  if (a.hasCode) tags += '<span class="tag tag-has-code">code</span>';
+  else tags += '<span class="tag tag-no-code">no code</span>';
+  if (a.hasReceipt) tags += '<span class="tag tag-has-receipt">receipt</span>';
+  if (a.hasBridge) tags += '<span class="tag tag-has-bridge">bridge</span>';
+  if (a.hasNovel) tags += '<span class="tag tag-novel">novel</span>';
+  if (a.hasPlanChange) tags += '<span class="tag tag-plan-change">plan change</span>';
+  if (a.hasATO) tags += '<span class="tag tag-ato">ATO</span>';
+  return tags;
+}
+
+// ── Render results ────────────────────────────────────────────────────────
+function renderResults(data, searchTerm) {
+  const grid = document.getElementById('results-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (!data || data.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    empty.innerHTML = `<div class="empty-icon">🔍</div><div style="font-weight:600;font-size:var(--text-sm);color:var(--color-text)">No results found</div><div style="font-size:var(--text-xs);color:var(--color-text-muted)">Try a different query or clear filters</div>`;
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+
+  // Stats
+  let codeCount=0, bridgeCount=0, receiptCount=0, novelCount=0, planCount=0;
+  data.forEach(r => {
+    const a = analyzeContent(r.content_text || r.subject);
+    if (a.hasCode) codeCount++;
+    if (a.hasBridge) bridgeCount++;
+    if (a.hasReceipt) receiptCount++;
+    if (a.hasNovel) novelCount++;
+    if (a.hasPlanChange) planCount++;
+  });
+
+  document.getElementById('stat-total').textContent = data.length;
+  document.getElementById('stat-code').textContent = codeCount;
+  document.getElementById('stat-bridge').textContent = bridgeCount;
+  document.getElementById('stat-receipt').textContent = receiptCount;
+  document.getElementById('stat-novel').textContent = novelCount;
+  document.getElementById('stat-plan').textContent = planCount;
+
+  // KPIs
+  document.getElementById('kpi-total').textContent = data.length;
+  document.getElementById('kpi-code').textContent = codeCount;
+  document.getElementById('kpi-bridge').textContent = bridgeCount;
+  document.getElementById('kpi-novel').textContent = novelCount;
+  document.getElementById('kpi-plan').textContent = planCount;
+  document.getElementById('analytics-bar').style.display = 'grid';
+
+  // Cards
+  grid.innerHTML = data.map((r, i) => {
+    const content = r.content_text || '';
+    const a = analyzeContent(content + ' ' + (r.subject || ''));
+    const snippet = content.replace(/[{}"]/g, '').substring(0, 180) + (content.length > 180 ? '…' : '');
+    const date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-AU', {day:'2-digit',month:'short',year:'2-digit'}) : '';
+    const src = (r.ai_source || 'unknown').toLowerCase();
+    const tags = buildTags(a);
+    
+    // Highlight search term
+    const highlighted = searchTerm && searchTerm.length > 2
+      ? snippet.replace(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark class="highlight">$1</mark>')
+      : snippet;
+
+    return `
+      <div class="chat-card" id="card-${i}" onclick="toggleCard(${i})">
+        <div class="card-header">
+          <span class="ai-badge ${src}">${r.ai_source || '?'}</span>
+          <div style="flex:1">
+            <div class="card-subject">${r.subject || r.message_type || 'Untitled'}</div>
+            <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px">${r.message_type || ''} ${r.session_id ? '· ' + r.session_id.substring(0,20) : ''}</div>
+          </div>
+          <span class="card-date">${date}</span>
+        </div>
+        <div class="card-tags">${tags}</div>
+        <div class="card-snippet">${highlighted}</div>
+        <div class="card-expanded">
+          <pre class="card-full-content">${content.substring(0, 1200) + (content.length > 1200 ? '\n\n[… truncated]' : '')}</pre>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Analysis panel
+  updateAnalysis(data, codeCount, bridgeCount, receiptCount, novelCount, planCount, searchTerm);
+}
+
+function toggleCard(i) {
+  const card = document.getElementById(`card-${i}`);
+  card.classList.toggle('expanded');
+}
+
+// ── Analysis panel ────────────────────────────────────────────────────────
+function updateAnalysis(data, code, bridge, receipt, novel, plan, query) {
+  const atoCount = data.filter(r => analyzeContent((r.content_text||'')+(r.subject||'')).hasATO).length;
+  document.getElementById('kpi-ato').textContent = atoCount;
+
+  const bySource = {};
+  data.forEach(r => { bySource[r.ai_source] = (bySource[r.ai_source]||0)+1; });
+  const sourceLines = Object.entries(bySource).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`<span style="color:var(--color-text)">${s}</span>: ${n}`).join(', ');
+
+  document.getElementById('response-body').innerHTML = `
+    <p><strong>Query:</strong> "${query || 'filter/preset'}"</p>
+    <p><strong>${data.length} conversations</strong> matched across sources: ${sourceLines || '—'}</p>
+    <div class="insight-row"><div class="num">${code}</div><div class="desc"><strong>contain code blocks</strong> — ${data.length - code} have no code at all</div></div>
+    <div class="insight-row"><div class="num" style="color:var(--color-gold)">${receipt}</div><div class="desc"><strong>include receipt/confirmation</strong> — ${code - receipt > 0 ? code - receipt + ' code chats missing receipt' : 'all code chats receipted'}</div></div>
+    <div class="insight-row"><div class="num" style="color:var(--color-purple)">${bridge}</div><div class="desc"><strong>mention Bridge</strong> — ${data.length - bridge} with no bridge reference</div></div>
+    <div class="insight-row"><div class="num" style="color:var(--color-orange)">${novel}</div><div class="desc"><strong>use word "novel"</strong></div></div>
+    <div class="insight-row"><div class="num" style="color:var(--color-warning)">${plan}</div><div class="desc"><strong>contain plan changes</strong> or pivots</div></div>
+    ${atoCount > 0 ? `<div class="insight-row"><div class="num" style="color:var(--color-error)">${atoCount}</div><div class="desc"><strong>ATO/tax related</strong> — review before 10 June</div></div>` : ''}
+  `;
+}
+
+// ── Main search fn ────────────────────────────────────────────────────────
+async function runSearch(queryText, presetOverride) {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+
+  const intent = parseQuery(queryText || '');
+  const preset = presetOverride || intent.preset;
+  const sql = buildSQL(preset, queryText, activeSources);
+
+  try {
+    const data = await callLambda(sql);
+    allData = data;
+    renderResults(data, queryText);
+  } catch(e) {
+    // Demo mode: show mock data
+    const mock = generateMockData(preset || 'demo');
+    renderResults(mock, queryText);
+    document.getElementById('response-body').innerHTML = `<p style="color:var(--color-warning)">⚠️ Live connection unavailable — showing demo data.</p><p>The query engine is ready. Once the Lambda/Supabase endpoint responds, results will be live.</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+// ── Demo data ─────────────────────────────────────────────────────────────
+function generateMockData(preset) {
+  const templates = [
+    {ai_source:'claude',subject:'Bridge Decision Engine — refactor plan',content_text:'The bridge architecture needs a rethink. Novel approach: route all ```typescript\nconst router = new Bridge();\n``` decisions through the decider GPT.',created_at:'2026-05-10'},
+    {ai_source:'perplexity',subject:'ATO Tax Compliance Research',content_text:'ATO deadlines for tech4humanity: research confirms the 10 June 2026 response window. No receipt was generated for last month.',created_at:'2026-05-08'},
+    {ai_source:'claude',subject:'COAX Pipeline — no code discussion',content_text:'Discussion about changing the plan for the orchestration layer. Novel concept: stateless workers. No implementation code attached yet.',created_at:'2026-05-06'},
+    {ai_source:'gpt',subject:'Receipt generation for Sprint 14',content_text:'receipt: Sprint 14 complete. All tasks closed. No bridge integration in this batch.',created_at:'2026-05-05'},
+    {ai_source:'system',subject:'Daily Fleet Summary',content_text:'Status: all systems nominal. Bridge: 3 active routes. Novel term used 2x today. Plan change logged: swapped queue order.',created_at:'2026-05-04'},
+    {ai_source:'claude',subject:'T4H Tax — plan changed from annual to quarterly',content_text:'Changed plan from annual BAS to quarterly. ATO recommends this. ```sql\nSELECT * FROM bas_submissions\n``` Bridge connector updated.',created_at:'2026-04-29'},
+    {ai_source:'gemini',subject:'Novel AI synthesis approach — no receipt',content_text:'Novel framing: treat each LLM as a semantic node, not a worker. No bridge required for this pattern.',created_at:'2026-04-22'},
+    {ai_source:'claude',subject:'Bridge refactor — has code, no receipt',content_text:'Bridge refactoring in progress:\n```python\nclass BridgeRouter:\n    def route(self, msg):\n        pass\n```\nCompletion receipt not issued yet.',created_at:'2026-04-18'},
+  ];
+  return templates;
+}
+
+// ── Voice input ───────────────────────────────────────────────────────────
+function initVoice() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) return;
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.lang = 'en-AU';
+  recognition.interimResults = true;
+  recognition.onresult = e => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('query-input').value = transcript;
+    document.getElementById('transcript-text').textContent = transcript;
+    if (e.results[e.results.length-1].isFinal) {
+      stopVoice();
+      runSearch(transcript);
+    }
+  };
+  recognition.onerror = () => stopVoice();
+  recognition.onend = () => stopVoice();
+}
+
+function startVoice() {
+  if (!recognition) { alert('Voice not supported in this browser.'); return; }
+  isListening = true;
+  recognition.start();
+  document.getElementById('voice-btn').classList.add('listening');
+  document.getElementById('transcript-bar').classList.add('active');
+  document.getElementById('transcript-text').textContent = 'Listening…';
+}
+
+function stopVoice() {
+  isListening = false;
+  if (recognition) try { recognition.stop(); } catch(e) {}
+  document.getElementById('voice-btn').classList.remove('listening');
+  document.getElementById('transcript-bar').classList.remove('active');
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', () => {
+  runSearch(document.getElementById('query-input').value);
+});
+
+document.getElementById('query-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runSearch(e.target.value);
+});
+
+document.getElementById('voice-btn').addEventListener('click', () => {
+  if (isListening) stopVoice(); else startVoice();
+});
+
+// Pill filters
+document.getElementById('content-filters').addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (!pill) return;
+  const f = pill.dataset.filter;
+  if (activeFilters.has(f)) { activeFilters.delete(f); pill.classList.remove('active'); }
+  else { activeFilters.add(f); pill.classList.add('active'); }
+});
+
+document.getElementById('source-filters').addEventListener('click', e => {
+  const pill = e.target.closest('.pill');
+  if (!pill) return;
+  const s = pill.dataset.source;
+  if (activeSources.has(s)) { activeSources.delete(s); pill.classList.remove('active'); }
+  else { activeSources.add(s); pill.classList.add('active'); }
+});
+
+// Preset items
+document.querySelectorAll('.preset-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.preset-item').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    const preset = item.dataset.preset;
+    const labels = {
+      no_code_no_receipt: 'no code and no receipt',
+      code_no_receipt: 'has code but missing receipt',
+      bridge_mentions: 'bridge mentions',
+      no_bridge_no_code: 'no bridge and no code',
+      novel_usage: 'novel usage',
+      plan_changes: 'plan changes',
+      ato_related: 'ATO related',
+      all_recent: 'recent 30 days',
+    };
+    document.getElementById('query-input').value = labels[preset] || preset;
+    runSearch(labels[preset], preset);
+  });
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+initVoice();
+testConnection();
+</script>
+</body>
+</html>
