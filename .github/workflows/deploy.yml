@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: team_IKIr2Kcs38KGo8Zs60yNtm7Y
-          vercel-project-id: prj_Jty8omrqowrzzcsFjqp2n4Jcn9PR
-          working-directory: ./
-          vercel-args: '--prod'
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+      - name: Deploy (prod)
+        run: vercel --prod --yes --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_IKIr2Kcs38KGo8Zs60yNtm7Y
+          VERCEL_PROJECT_ID: prj_Jty8omrqowrzzcsFjqp2n4Jcn9PR
