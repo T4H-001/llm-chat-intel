@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLM + Agent Runtime Monitor</title>
+<style>
+:root{color-scheme:dark;--bg:#0d0d0f;--panel:#15151a;--line:#2a2a32;--text:#e8e8ee;--muted:#9292a2;--blue:#6c8aff;--green:#5dba7e;--amber:#f5a623;--red:#ff6b6b;--purple:#b48eff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,sans-serif}.wrap{max-width:1400px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.title{font-size:24px;font-weight:700}.sub{color:var(--muted);margin-top:5px}.actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 13px;border-radius:8px;text-decoration:none}.btn.primary{background:var(--blue);color:#09090b;border-color:var(--blue);font-weight:700}.status{padding:6px 10px;border-radius:999px;background:#222;color:var(--muted);font-size:12px}.status.real{color:var(--green);background:#173023}.status.partial{color:var(--amber);background:#302410}.status.blocked{color:var(--red);background:#321919}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}.num{font-size:28px;font-weight:750;font-variant-numeric:tabular-nums}.label{color:var(--muted);font-size:12px;margin-top:5px}.section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:14px}.section h2{font-size:15px;margin:0 0 14px}.providers{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.provider{border:1px solid var(--line);border-radius:9px;padding:12px}.provider b{display:block;margin-bottom:5px}.bar{height:5px;background:#292930;border-radius:5px;overflow:hidden}.fill{height:100%;background:var(--blue)}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 6px}th{color:var(--muted);font-size:12px}.pill{display:inline-block;padding:3px 7px;border-radius:999px;font-size:11px;background:#24242b;color:var(--muted)}.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}.gap{color:var(--red);font-family:monospace;font-size:12px}.foot{color:var(--muted);font-size:11px;margin-top:16px}@media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}.providers{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main class="wrap">
+<header class="top"><div><div class="title">LLM + Agent Runtime Monitor</div><div class="sub">One evidence-backed view of provider corpus, agent catalogue, usage and live runtime.</div></div><div class="actions"><span id="state" class="status">CHECKING</span><a class="btn" href="/">Chat Intelligence</a><button class="btn primary" id="refresh">Refresh</button></div></header>
+<section class="grid">
+<div class="card"><div id="catalogue" class="num">729</div><div class="label">Agent catalogue</div></div>
+<div class="card"><div id="registry" class="num">—</div><div class="label">Registry agents</div></div>
+<div class="card"><div id="used" class="num">—</div><div class="label">Proven used</div></div>
+<div class="card"><div id="unused" class="num">—</div><div class="label">Built / registered, not used</div></div>
+<div class="card"><div id="running" class="num">—</div><div class="label">Running now</div></div>
+<div class="card"><div id="chats" class="num">—</div><div class="label">LLM conversations</div></div>
+</section>
+<section class="section"><h2>LLM provider estate</h2><div id="providers" class="providers"><div class="provider">Loading…</div></div></section>
+<section class="section"><h2>Agent lifecycle / runtime</h2><table><thead><tr><th>Signal</th><th>Value</th><th>Evidence</th></tr></thead><tbody id="agentRows"><tr><td colspan="3">Loading…</td></tr></tbody></table></section>
+<section class="section"><h2>Gaps / recovery</h2><div id="gaps">Checking runtime.</div></section>
+<div class="foot">REAL requires runtime response. PARTIAL means catalogue/registry evidence exists but live telemetry or usage evidence is incomplete. This monitor never converts an unobserved state into “running”.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id); const n=v=>v==null?'—':Number(v).toLocaleString('en-AU');
+async function load(){
+ $('state').textContent='CHECKING';$('state').className='status';
+ try{const r=await fetch('/api/estate',{cache:'no-store'});const d=await r.json();
+  $('state').textContent=d.status;$('state').className='status '+d.status.toLowerCase();
+  $('catalogue').textContent=n(d.catalogue_agents);$('registry').textContent=n(d.agent_registry?.total_agents);$('used').textContent=n(d.agent_used?.used_agents);$('unused').textContent=n(d.built_not_used);$('running').textContent=n(d.agent_runtime?.running);$('chats').textContent=n(d.chats?.total_chats);
+  const total=(d.providers||[]).reduce((a,x)=>a+Number(x.conversations||0),0); $('providers').innerHTML=(d.providers||[]).map(x=>`<div class="provider"><b>${esc(x.provider)}</b><span>${n(x.conversations)} conversations</span><div class="bar"><div class="fill" style="width:${total?Math.min(100,Number(x.conversations)/total*100):0}%"></div></div></div>`).join('')||'<div class="provider">No provider telemetry returned.</div>';
+  const rt=d.agent_runtime||{}; const rows=[['Catalogue',d.catalogue_agents,'Canonical estate'],['Registry',d.agent_registry?.total_agents,'agent_registry'],['Used',d.agent_used?.used_agents,'runtime.job_runs'],['Built / not used',d.built_not_used,'derived: registry − used'],['Running',rt.running,'runtime.agent_state'],['Waiting / idle',rt.waiting,'runtime.agent_state'],['Failed / error',rt.failed,'runtime.agent_state']];
+  $('agentRows').innerHTML=rows.map(x=>`<tr><td>${x[0]}</td><td><b>${n(x[1])}</b></td><td><span class="pill">${x[2]}</span></td></tr>`).join('');
+  $('gaps').innerHTML=d.gaps?.length?d.gaps.map(g=>`<div class="gap">${esc(g.dataset)}: ${esc(g.error)}</div>`).join(''):'<span class="ok">No query gaps reported.</span>';
+ }catch(e){$('state').textContent='BLOCKED';$('state').className='status blocked';$('gaps').innerHTML='<span class="gap">Estate monitor unavailable: '+esc(e.message)+'</span>'}
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('refresh').onclick=load;load();setInterval(load,60000);
+</script></body></html>
