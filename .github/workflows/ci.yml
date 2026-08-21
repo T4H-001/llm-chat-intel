@@ -18,6 +18,7 @@ jobs:
         run: |
           node --check api/query.js
           node --check api/health.js
+          node --check api/estate.js
       - name: Validate required runtime contract
         run: |
           test -f .env.example
