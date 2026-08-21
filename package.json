@@ -1,0 +1,8 @@
+{
+  "name": "llm-chat-intel",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
