@@ -12,9 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
-      - name: Deploy (prod)
-        run: vercel --prod --yes --token=$VERCEL_TOKEN
+      - name: Deploy production
+        run: vercel --prod --yes --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_IKIr2Kcs38KGo8Zs60yNtm7Y
-          VERCEL_PROJECT_ID: prj_Jty8omrqowrzzcsFjqp2n4Jcn9PR
+          VERCEL_ORG_ID: team_1KrnWMLLv3cBteLpk9zIJY3b
+          VERCEL_PROJECT_ID: prj_Uj7xTloAW6CXTapc4nW9ftY3zxTL
