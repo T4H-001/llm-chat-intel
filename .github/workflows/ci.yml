@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check API functions
+        run: |
+          node --check api/query.js
+          node --check api/health.js
+      - name: Validate required runtime contract
+        run: |
+          test -f .env.example
+          grep -q 'T4H_LAMBDA_URL=' .env.example
+          grep -q 'T4H_LAMBDA_API_KEY=' .env.example
+      - name: Reject committed runtime secrets
+        run: |
+          if grep -RInE 'x-api-key[[:space:]]*:[[:space:]]*["'"'][^"'"']{20,}["'"']|bk_[A-Za-z0-9_-]{20,}' api index.html; then
+            echo 'Potential hard-coded runtime credential detected.'
+            exit 1
+          fi
