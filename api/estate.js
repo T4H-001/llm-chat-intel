@@ -17,7 +17,7 @@ async function run(sql) {
   const response = await fetch(LAMBDA_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': LAMBDA_KEY },
-    body: JSON.stringify({ fn: 'troy-sql-executor', sql }),
+    body: JSON.stringify({ fn: 'troy-sql-executor', debug: true, sql }),
     signal: AbortSignal.timeout(12000)
   });
   const text = await response.text();
@@ -33,9 +33,7 @@ function rows(data) {
   if (Array.isArray(data?.result?.rows)) return data.result.rows;
   if (Array.isArray(data?.rows)) return data.rows;
   if (Array.isArray(data?.data)) return data.data;
-  if (typeof data?.body === 'string') {
-    try { return rows(JSON.parse(data.body)); } catch (_) { return []; }
-  }
+  if (typeof data?.body === 'string') { try { return rows(JSON.parse(data.body)); } catch (_) { return []; } }
   return [];
 }
 
@@ -47,18 +45,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ status: 'BLOCKED', error: 'Method not allowed' });
   if (!LAMBDA_URL || !LAMBDA_KEY) return res.status(503).json({ status: 'BLOCKED', code: 'MISSING_RUNTIME_SECRET' });
 
-  const result = {
-    status: 'PARTIAL',
-    generated_at: new Date().toISOString(),
-    providers: [],
-    chats: null,
-    agent_registry: null,
-    agent_registry_status: [],
-    agent_runtime: null,
-    agent_used: null,
-    gaps: []
-  };
-
+  const result = { status: 'PARTIAL', generated_at: new Date().toISOString(), providers: [], chats: null, agent_registry: null, agent_registry_status: [], agent_runtime: null, agent_used: null, gaps: [] };
   for (const [name, sql] of Object.entries(QUERIES)) {
     try {
       const data = rows(await run(sql));
@@ -68,11 +55,8 @@ export default async function handler(req, res) {
       else if (name === 'agent_registry_status') result.agent_registry_status = data;
       else if (name === 'agent_runtime') result.agent_runtime = data[0] || null;
       else if (name === 'agent_used') result.agent_used = data[0] || null;
-    } catch (e) {
-      result.gaps.push({ dataset: name, error: e.message });
-    }
+    } catch (e) { result.gaps.push({ dataset: name, error: e.message }); }
   }
-
   const requiredLive = [result.chats, result.agent_registry, result.agent_runtime, result.agent_used].every(Boolean) && result.providers.length > 0;
   const registry = Number(result.agent_registry?.total_agents || 0);
   const used = Number(result.agent_used?.used_agents || 0);
@@ -80,12 +64,6 @@ export default async function handler(req, res) {
   result.status = requiredLive && result.gaps.length === 0 ? 'REAL' : 'PARTIAL';
   result.catalogue_agents = 729;
   result.receipt = result.status === 'REAL' ? 'ESTATE_TELEMETRY_RETURNED' : 'ESTATE_TELEMETRY_PARTIAL';
-  result.provenance = {
-    catalogue_agents: 'canonical T4H agent estate records',
-    live_agents: result.agent_runtime ? 'runtime.agent_state' : 'unavailable',
-    used_agents: result.agent_used ? 'runtime.job_runs' : 'unavailable',
-    conversations: 'gpt_conversations'
-  };
-
+  result.provenance = { catalogue_agents: 'canonical T4H agent estate records', live_agents: result.agent_runtime ? 'runtime.agent_state' : 'unavailable', used_agents: result.agent_used ? 'runtime.job_runs' : 'unavailable', conversations: 'gpt_conversations' };
   return res.status(200).json(result);
 }
