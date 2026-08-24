@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'same-origin');
   if (req.method !== 'GET') return res.status(405).json({ status: 'BLOCKED', error: 'Method not allowed' });
   if (!LAMBDA_URL || !LAMBDA_KEY) return res.status(503).json({ status: 'BLOCKED', code: 'MISSING_RUNTIME_SECRET' });
 
@@ -72,15 +73,16 @@ export default async function handler(req, res) {
     }
   }
 
-  const liveRuntime = result.agent_runtime !== null;
+  const requiredLive = [result.chats, result.agent_registry, result.agent_runtime, result.agent_used].every(Boolean) && result.providers.length > 0;
   const registry = Number(result.agent_registry?.total_agents || 0);
   const used = Number(result.agent_used?.used_agents || 0);
-  result.built_not_used = registry > 0 && result.agent_used ? Math.max(registry - used, 0) : null;
-  result.status = liveRuntime && registry > 0 ? 'REAL' : 'PARTIAL';
+  result.built_not_used = result.agent_used && result.agent_registry ? Math.max(registry - used, 0) : null;
+  result.status = requiredLive && result.gaps.length === 0 ? 'REAL' : 'PARTIAL';
   result.catalogue_agents = 729;
+  result.receipt = result.status === 'REAL' ? 'ESTATE_TELEMETRY_RETURNED' : 'ESTATE_TELEMETRY_PARTIAL';
   result.provenance = {
     catalogue_agents: 'canonical T4H agent estate records',
-    live_agents: liveRuntime ? 'runtime.agent_state' : 'unavailable',
+    live_agents: result.agent_runtime ? 'runtime.agent_state' : 'unavailable',
     used_agents: result.agent_used ? 'runtime.job_runs' : 'unavailable',
     conversations: 'gpt_conversations'
   };
