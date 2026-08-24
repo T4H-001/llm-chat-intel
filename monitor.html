@@ -9,7 +9,7 @@
 </style>
 </head>
 <body><main class="wrap">
-<header class="top"><div><div class="title">LLM + Agent Runtime Monitor</div><div class="sub">One evidence-backed view of provider corpus, agent catalogue, usage and live runtime.</div></div><div class="actions"><span id="state" class="status">CHECKING</span><a class="btn" href="/">Chat Intelligence</a><button class="btn primary" id="refresh">Refresh</button></div></header>
+<header class="top"><div><div class="title">LLM + Agent Runtime Monitor</div><div class="sub">One evidence-backed view of provider corpus, agent catalogue, usage and live runtime.</div></div><div class="actions"><span id="state" class="status">CHECKING</span><a class="btn" href="/chat">Chat Intelligence</a><button class="btn primary" id="refresh">Refresh</button></div></header>
 <section class="grid">
 <div class="card"><div id="catalogue" class="num">729</div><div class="label">Agent catalogue</div></div>
 <div class="card"><div id="registry" class="num">—</div><div class="label">Registry agents</div></div>
@@ -30,12 +30,11 @@ async function load(){
  try{const r=await fetch('/api/estate',{cache:'no-store'});const d=await r.json();
   $('state').textContent=d.status;$('state').className='status '+d.status.toLowerCase();
   $('catalogue').textContent=n(d.catalogue_agents);$('registry').textContent=n(d.agent_registry?.total_agents);$('used').textContent=n(d.agent_used?.used_agents);$('unused').textContent=n(d.built_not_used);$('running').textContent=n(d.agent_runtime?.running);$('chats').textContent=n(d.chats?.total_chats);
-  const total=(d.providers||[]).reduce((a,x)=>a+Number(x.conversations||0),0); $('providers').innerHTML=(d.providers||[]).map(x=>`<div class="provider"><b>${esc(x.provider)}</b><span>${n(x.conversations)} conversations</span><div class="bar"><div class="fill" style="width:${total?Math.min(100,Number(x.conversations)/total*100):0}%"></div></div></div>`).join('')||'<div class="provider">No provider telemetry returned.</div>';
+  const total=(d.providers||[]).reduce((a,x)=>a+Number(x.conversations||0),0); $('providers').replaceChildren(...(d.providers||[]).map(x=>{const el=document.createElement('div');el.className='provider';const b=document.createElement('b');b.textContent=x.provider;const s=document.createElement('span');s.textContent=n(x.conversations)+' conversations';const bar=document.createElement('div');bar.className='bar';const fill=document.createElement('div');fill.className='fill';fill.style.width=(total?Math.min(100,Number(x.conversations)/total*100):0)+'%';bar.appendChild(fill);el.append(b,s,bar);return el}));
   const rt=d.agent_runtime||{}; const rows=[['Catalogue',d.catalogue_agents,'Canonical estate'],['Registry',d.agent_registry?.total_agents,'agent_registry'],['Used',d.agent_used?.used_agents,'runtime.job_runs'],['Built / not used',d.built_not_used,'derived: registry − used'],['Running',rt.running,'runtime.agent_state'],['Waiting / idle',rt.waiting,'runtime.agent_state'],['Failed / error',rt.failed,'runtime.agent_state']];
-  $('agentRows').innerHTML=rows.map(x=>`<tr><td>${x[0]}</td><td><b>${n(x[1])}</b></td><td><span class="pill">${x[2]}</span></td></tr>`).join('');
-  $('gaps').innerHTML=d.gaps?.length?d.gaps.map(g=>`<div class="gap">${esc(g.dataset)}: ${esc(g.error)}</div>`).join(''):'<span class="ok">No query gaps reported.</span>';
- }catch(e){$('state').textContent='BLOCKED';$('state').className='status blocked';$('gaps').innerHTML='<span class="gap">Estate monitor unavailable: '+esc(e.message)+'</span>'}
+  const tbody=$('agentRows');tbody.replaceChildren(...rows.map(x=>{const tr=document.createElement('tr');for(const v of x){const td=document.createElement('td');td.textContent=v==null?'—':v;tr.appendChild(td)}return tr}));
+  const gaps=$('gaps');gaps.replaceChildren();if(d.gaps?.length){for(const g of d.gaps){const div=document.createElement('div');div.className='gap';div.textContent=g.dataset+': '+g.error;gaps.appendChild(div)}}else{const span=document.createElement('span');span.className='ok';span.textContent='No query gaps reported.';gaps.appendChild(span)}
+ }catch(e){$('state').textContent='BLOCKED';$('state').className='status blocked';$('gaps').textContent='Estate monitor unavailable: '+e.message}
 }
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 $('refresh').onclick=load;load();setInterval(load,60000);
 </script></body></html>
