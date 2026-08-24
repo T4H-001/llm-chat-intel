@@ -1,0 +1,21 @@
+name: Validate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [prod-hardening-20260821]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check server functions
+        run: node --check api/health.js && node --check api/query.js && node --check api/estate.js
+      - name: Check for hard-coded bridge credentials
+        run: |
+          ! grep -RInE 'x-api-key:[[:space:]]*[A-Za-z0-9_./+=-]{16,}|T4H_LAMBDA_API_KEY[[:space:]]*=[[:space:]]*[^<\n[:space:]]+' --exclude='.env.example' --exclude-dir=.git .
