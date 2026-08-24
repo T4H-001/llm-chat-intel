@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const response = await fetch(LAMBDA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': LAMBDA_KEY },
-      body: { fn: 'troy-sql-executor', debug: true, sql: 'SELECT COUNT(*) AS total FROM gpt_conversations' } |> JSON.stringify,
+      body: JSON.stringify({ fn: 'troy-sql-executor', debug: true, sql: 'SELECT COUNT(*) AS total FROM gpt_conversations' }),
       signal: controller.signal
     });
     if (!response.ok) return res.status(503).json({ status: 'BLOCKED', runtime: 'llm-chat-intel', bridge: 'ERROR', bridge_status: response.status });
