@@ -13,9 +13,7 @@ function rejectUnsafeSql(sql) {
   if (!/^select\b/.test(normalized)) return 'Only SELECT queries are allowed';
   if (normalized.includes(';')) return 'Multiple SQL statements are not allowed';
   if (/--|\/\*|\*\//.test(normalized)) return 'SQL comments are not allowed';
-  if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|execute|call|copy|vacuum|analyze|refresh|union|join)\b/.test(normalized)) {
-    return 'Mutating, administrative, join or union SQL is not allowed';
-  }
+  if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|execute|call|copy|vacuum|analyze|refresh|union|join)\b/.test(normalized)) return 'Mutating, administrative, join or union SQL is not allowed';
   if (!/\bfrom\s+gpt_conversations\b/.test(normalized)) return `Only ${ALLOWED_TABLE} is available through this endpoint`;
   const fromMatches = normalized.match(/\bfrom\s+([a-z_][a-z0-9_]*)/g) || [];
   if (fromMatches.some(x => !x.endsWith(` ${ALLOWED_TABLE}`))) return `Only ${ALLOWED_TABLE} is available through this endpoint`;
@@ -28,17 +26,8 @@ export default async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'same-origin');
-
   if (req.method !== 'POST') return res.status(405).json({ status: 'BLOCKED', error: 'Method not allowed' });
-
-  if (!LAMBDA_URL || !LAMBDA_KEY) {
-    return res.status(503).json({
-      status: 'BLOCKED',
-      error: 'Runtime not configured',
-      code: 'MISSING_RUNTIME_SECRET',
-      detail: 'T4H_LAMBDA_URL and T4H_LAMBDA_API_KEY must be configured in production.'
-    });
-  }
+  if (!LAMBDA_URL || !LAMBDA_KEY) return res.status(503).json({ status: 'BLOCKED', error: 'Runtime not configured', code: 'MISSING_RUNTIME_SECRET' });
 
   const { sql } = req.body || {};
   const validationError = rejectUnsafeSql(sql);
@@ -46,34 +35,20 @@ export default async function handler(req, res) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
-
   try {
     const resp = await fetch(LAMBDA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': LAMBDA_KEY },
-      body: JSON.stringify({ fn: 'troy-sql-executor', sql }),
+      body: JSON.stringify({ fn: 'troy-sql-executor', debug: true, sql }),
       signal: controller.signal
     });
     const text = await resp.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 2000) }; }
-
-    if (!resp.ok) {
-      return res.status(resp.status >= 500 ? 502 : resp.status).json({
-        status: 'BLOCKED',
-        error: `Bridge HTTP ${resp.status}`,
-        code: 'BRIDGE_ERROR'
-      });
-    }
+    if (!resp.ok) return res.status(resp.status >= 500 ? 502 : resp.status).json({ status: 'BLOCKED', error: `Bridge HTTP ${resp.status}`, code: 'BRIDGE_ERROR' });
     return res.status(200).json({ status: 'REAL', receipt: 'QUERY_RETURNED', result: data });
   } catch (e) {
     const timedOut = e && e.name === 'AbortError';
-    return res.status(502).json({
-      status: 'BLOCKED',
-      error: timedOut ? 'Bridge timeout' : 'Bridge unreachable',
-      code: timedOut ? 'BRIDGE_TIMEOUT' : 'BRIDGE_UNREACHABLE'
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
+    return res.status(502).json({ status: 'BLOCKED', error: timedOut ? 'Bridge timeout' : 'Bridge unreachable', code: timedOut ? 'BRIDGE_TIMEOUT' : 'BRIDGE_UNREACHABLE' });
+  } finally { clearTimeout(timeout); }
 }
