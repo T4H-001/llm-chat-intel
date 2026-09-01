@@ -1,23 +1,23 @@
-// /api/estate.js — fixed, read-only estate monitor queries.
-// No client-supplied SQL is accepted here.
+// /api/estate.js — evidence-backed runtime estate endpoint.
+// No client-supplied SQL is accepted. Catalogue counts are never presented as live counts.
 
 const LAMBDA_URL = process.env.T4H_LAMBDA_URL;
 const LAMBDA_KEY = process.env.T4H_LAMBDA_API_KEY;
 
-const QUERIES = {
-  providers: `SELECT COALESCE(ai_source, 'unknown') AS provider, COUNT(*)::int AS conversations FROM gpt_conversations GROUP BY ai_source ORDER BY conversations DESC`,
-  chats: `SELECT COUNT(*)::int AS total_chats FROM gpt_conversations`,
-  agent_registry: `SELECT COUNT(*)::int AS total_agents FROM agent_registry`,
-  agent_registry_status: `SELECT COALESCE(status, 'unknown') AS status, COUNT(*)::int AS count FROM agent_registry GROUP BY status ORDER BY count DESC`,
-  agent_runtime: `SELECT COUNT(*)::int AS total_runtime, COUNT(*) FILTER (WHERE LOWER(COALESCE(status,'')) = 'running')::int AS running, COUNT(*) FILTER (WHERE LOWER(COALESCE(status,'')) IN ('waiting','idle'))::int AS waiting, COUNT(*) FILTER (WHERE LOWER(COALESCE(status,'')) IN ('failed','error'))::int AS failed FROM runtime.agent_state`,
-  agent_used: `SELECT COUNT(DISTINCT agent_id)::int AS used_agents FROM runtime.job_runs WHERE agent_id IS NOT NULL`
-};
+const SQL = `SELECT * FROM public.llm_intelligence_runtime_summary`;
+const PROVIDER_ARCHIVE = [
+  { provider: 'GPT', candidates: 106 },
+  { provider: 'Claude', candidates: 24 },
+  { provider: 'Grok', candidates: 19 },
+  { provider: 'Gemini', candidates: 6 },
+  { provider: 'Perplexity', candidates: 7 }
+];
 
-async function run(sql) {
+async function run() {
   const response = await fetch(LAMBDA_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': LAMBDA_KEY },
-    body: JSON.stringify({ fn: 'troy-sql-executor', debug: true, sql }),
+    body: JSON.stringify({ fn: 'troy-sql-executor', debug: true, sql: SQL }),
     signal: AbortSignal.timeout(12000)
   });
   const text = await response.text();
@@ -45,25 +45,50 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ status: 'BLOCKED', error: 'Method not allowed' });
   if (!LAMBDA_URL || !LAMBDA_KEY) return res.status(503).json({ status: 'BLOCKED', code: 'MISSING_RUNTIME_SECRET' });
 
-  const result = { status: 'PARTIAL', generated_at: new Date().toISOString(), providers: [], chats: null, agent_registry: null, agent_registry_status: [], agent_runtime: null, agent_used: null, gaps: [] };
-  for (const [name, sql] of Object.entries(QUERIES)) {
-    try {
-      const data = rows(await run(sql));
-      if (name === 'providers') result.providers = data;
-      else if (name === 'chats') result.chats = data[0] || null;
-      else if (name === 'agent_registry') result.agent_registry = data[0] || null;
-      else if (name === 'agent_registry_status') result.agent_registry_status = data;
-      else if (name === 'agent_runtime') result.agent_runtime = data[0] || null;
-      else if (name === 'agent_used') result.agent_used = data[0] || null;
-    } catch (e) { result.gaps.push({ dataset: name, error: e.message }); }
+  try {
+    const data = rows(await run());
+    const s = data[0];
+    if (!s) return res.status(503).json({ status: 'BLOCKED', code: 'NO_RUNTIME_SUMMARY' });
+
+    const result = {
+      status: s.runtime_state === 'REAL' ? 'REAL' : 'PARTIAL',
+      generated_at: new Date().toISOString(),
+      catalogue_agents: 729,
+      registry_agents: Number(s.registry_total || 0),
+      runtime_enabled: Number(s.runtime_enabled || 0),
+      autonomous_enabled: Number(s.autonomous_enabled || 0),
+      promotion_enabled: Number(s.promotion_enabled || 0),
+      running: Number(s.running || 0),
+      executions: Number(s.execution_total || 0),
+      completed: Number(s.completed || 0),
+      failed: Number(s.failed || 0),
+      telemetry: Number(s.telemetry_total || 0),
+      receipts: Number(s.receipt_total || 0),
+      successful_receipts: Number(s.successful_receipts || 0),
+      indexed_objects: Number(s.indexed_objects || 0),
+      ingestion_events: Number(s.ingestion_events || 0),
+      successful_ingestion_events: Number(s.successful_ingestion_events || 0),
+      provider_archive_candidates: PROVIDER_ARCHIVE,
+      used_agents: null,
+      built_not_used: null,
+      gaps: [
+        'Full 729-agent usage cannot be derived until per-agent invocation telemetry is populated.',
+        'Provider archive candidates are metadata inventory, not live conversation counts.',
+        'Live LLM corpus search remains blocked until its source is ingested/indexed.'
+      ],
+      provenance: {
+        runtime_summary: 'public.llm_intelligence_runtime_summary',
+        registry: 'grk_runtime.registry_records',
+        executions: 'grk_runtime.executions',
+        telemetry: 'grk_runtime.telemetry_events',
+        receipts: 'grk_runtime.receipts',
+        index: 'knowledge_runtime.search_index',
+        provider_archive: '2026-07-20 LLM archive candidate inventory'
+      },
+      receipt: 'ESTATE_RUNTIME_SUMMARY_RETURNED'
+    };
+    return res.status(200).json(result);
+  } catch (e) {
+    return res.status(502).json({ status: 'BLOCKED', code: 'BRIDGE_UNREACHABLE', error: e.message });
   }
-  const requiredLive = [result.chats, result.agent_registry, result.agent_runtime, result.agent_used].every(Boolean) && result.providers.length > 0;
-  const registry = Number(result.agent_registry?.total_agents || 0);
-  const used = Number(result.agent_used?.used_agents || 0);
-  result.built_not_used = result.agent_used && result.agent_registry ? Math.max(registry - used, 0) : null;
-  result.status = requiredLive && result.gaps.length === 0 ? 'REAL' : 'PARTIAL';
-  result.catalogue_agents = 729;
-  result.receipt = result.status === 'REAL' ? 'ESTATE_TELEMETRY_RETURNED' : 'ESTATE_TELEMETRY_PARTIAL';
-  result.provenance = { catalogue_agents: 'canonical T4H agent estate records', live_agents: result.agent_runtime ? 'runtime.agent_state' : 'unavailable', used_agents: result.agent_used ? 'runtime.job_runs' : 'unavailable', conversations: 'gpt_conversations' };
-  return res.status(200).json(result);
 }
