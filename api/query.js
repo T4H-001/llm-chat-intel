@@ -4,7 +4,15 @@
 const LAMBDA_URL = process.env.T4H_LAMBDA_URL;
 const LAMBDA_KEY = process.env.T4H_LAMBDA_API_KEY;
 const MAX_SQL_LENGTH = 12000;
-const ALLOWED_TABLE = 'gpt_conversations';
+const ALLOWED_SOURCES = new Set([
+  'public.llm_intelligence_runtime_summary',
+  'grk_runtime.registry_records',
+  'grk_runtime.executions',
+  'grk_runtime.telemetry_events',
+  'grk_runtime.receipts',
+  'knowledge_runtime.search_index',
+  'knowledge_runtime.ingestion_events'
+]);
 
 function rejectUnsafeSql(sql) {
   if (typeof sql !== 'string' || !sql.trim()) return 'Missing sql';
@@ -14,10 +22,10 @@ function rejectUnsafeSql(sql) {
   if (normalized.includes(';')) return 'Multiple SQL statements are not allowed';
   if (/--|\/\*|\*\//.test(normalized)) return 'SQL comments are not allowed';
   if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|execute|call|copy|vacuum|analyze|refresh|union|join)\b/.test(normalized)) return 'Mutating, administrative, join or union SQL is not allowed';
-  if (!/\bfrom\s+gpt_conversations\b/.test(normalized)) return `Only ${ALLOWED_TABLE} is available through this endpoint`;
-  const fromMatches = normalized.match(/\bfrom\s+([a-z_][a-z0-9_]*)/g) || [];
-  if (fromMatches.some(x => !x.endsWith(` ${ALLOWED_TABLE}`))) return `Only ${ALLOWED_TABLE} is available through this endpoint`;
   if (/\b(pg_|information_schema|auth\.|storage\.|vault\.)/.test(normalized)) return 'System/auth tables are not available';
+  const sources = [...normalized.matchAll(/\bfrom\s+([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)?)/g)].map(m => m[1]);
+  if (!sources.length) return 'A permitted source is required';
+  if (sources.some(source => !ALLOWED_SOURCES.has(source))) return 'Requested source is not permitted';
   return null;
 }
 
